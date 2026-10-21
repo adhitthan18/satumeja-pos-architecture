@@ -1,0 +1,10 @@
+# Installed as /etc/sudoers.d/deploy-api, mode 0440, owned by root:
+#   visudo -cf this-file && install -m 0440 this-file /etc/sudoers.d/deploy-api
+#
+# The CI pipeline logs in as "deploy" and may run exactly one command as root:
+# the installer, with no arguments. The installer refuses anything that would
+# turn a push into root (see install-api.sh), so this grant does not either.
+#
+# The empty argument "" means the command may only be run without arguments.
+deploy ALL=(root) NOPASSWD: /usr/local/sbin/install-api ""
+Defaults!/usr/local/sbin/install-api !requiretty

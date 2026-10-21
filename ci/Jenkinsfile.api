@@ -1,0 +1,44 @@
+// Deploy pipeline for the main API. Migrations are NOT run here: the
+// installer refuses a binary that needs a migration schema_migrations has not
+// recorded, and a human applies DDL after taking a backup.
+pipeline {
+  agent any
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+    buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '5'))
+    timeout(time: 30, unit: 'MINUTES')
+  }
+  environment {
+    PACKAGE    = "build/api-${env.BUILD_NUMBER}.tar.gz"
+    // Host alias in ~jenkins/.ssh/config: production over the LAN, with a
+    // deploy key restricted to the CI host (from="…",restrict).
+    TARGET     = 'deploy@production'
+    REMOTE_PKG = '/srv/deploy/incoming/api.tar.gz'
+  }
+  stages {
+    stage('Test and build') {
+      steps {
+        sh 'ci/build-api.sh "$WORKSPACE/$PACKAGE"'
+      }
+    }
+    stage('Ship') {
+      when { expression { return env.GIT_BRANCH ==~ /^(origin\/)?main$/ } }
+      steps {
+        sh 'scp -o StrictHostKeyChecking=yes "$WORKSPACE/$PACKAGE" "$TARGET:$REMOTE_PKG"'
+      }
+    }
+    stage('Install') {
+      when { expression { return env.GIT_BRANCH ==~ /^(origin\/)?main$/ } }
+      steps {
+        // Checks migrations, swaps the binary, restarts, waits for /readyz.
+        // On failure the previous binary is restored and this build fails.
+        sh 'ssh -o StrictHostKeyChecking=yes "$TARGET" sudo -n /usr/local/sbin/install-api'
+      }
+    }
+  }
+  post {
+    success { archiveArtifacts artifacts: "${PACKAGE}", fingerprint: true }
+    cleanup { cleanWs() }
+  }
+}

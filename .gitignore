@@ -1,0 +1,4 @@
+node_modules/
+build/
+/tools/prune/prune
+/tools/prune/prune.exe

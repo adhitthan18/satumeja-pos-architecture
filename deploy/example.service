@@ -1,0 +1,43 @@
+# The platform-console API unit: the stricter of the two services. It has its
+# own system user, its own token secret, no payment or device credentials, and
+# a read-only filesystem except for the one folder it uploads firmware into.
+[Unit]
+Description=Platform console API
+After=network-online.target mariadb.service
+Wants=network-online.target
+Requires=mariadb.service
+
+[Service]
+Type=simple
+User=platform-api
+Group=platform-api
+WorkingDirectory=/opt/platform-api
+ExecStart=/opt/platform-api/platform-api
+# Read by systemd as root BEFORE privileges drop, so the file can stay
+# root:root 0600 - the service user itself cannot read it.
+EnvironmentFile=/etc/api/platform-api.env
+
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=20
+
+NoNewPrivileges=true
+CapabilityBoundingSet=
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ReadWritePaths=/var/www/uploads/firmware
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,7 @@
+# Files that run on Linux servers must always end lines with LF, even when the
+# repository is cloned on Windows with core.autocrlf=true: bash rejects lines
+# ending in CR, and these scripts go into deploy packages.
+*.sh           text eol=lf
+Jenkinsfile*   text eol=lf
+*.service      text eol=lf
+*.sudoers      text eol=lf
